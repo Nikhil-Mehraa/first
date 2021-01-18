@@ -1,0 +1,372 @@
+jTabbedpanel:
+
+
+package javalab;
+
+import javax.swing.*;
+
+public class JTabbedPaneDemo extends JApplet {
+	public void init() {
+		try {
+			SwingUtilities.invokeAndWait(
+					new Runnable() {
+						public void run() {
+							makeGUI();
+						}
+					}
+			);
+		} catch (Exception exc) {
+			System.out.println("Can't create because of " + exc);
+		}
+   }
+	
+   private void makeGUI() {
+	  JTabbedPane jtp = new JTabbedPane();
+	  jtp.addTab("Cities", new CitiesPanel());
+	  jtp.addTab("Colors", new ColorsPanel());
+	  jtp.addTab("Flavors", new FlavorsPanel());
+	  add(jtp);
+   }
+}
+// Make the panels that will be added to the tabbed pane.
+class CitiesPanel extends JPanel {
+ public CitiesPanel() {
+ JButton b1 = new JButton("New York");
+ add(b1);
+ JButton b2 = new JButton("London");
+ add(b2);
+ JButton b3 = new JButton("Hong Kong");
+ add(b3);
+ JButton b4 = new JButton("Tokyo");
+ add(b4);
+ }
+}
+class ColorsPanel extends JPanel {
+  public ColorsPanel() {
+  JCheckBox cb1 = new JCheckBox("Red");
+  add(cb1);
+  JCheckBox cb2 = new JCheckBox("Green");
+  add(cb2);
+  JCheckBox cb3 = new JCheckBox("Blue");
+  add(cb3);
+  }
+}
+class FlavorsPanel extends JPanel {
+	 public FlavorsPanel() {
+	 JComboBox jcb = new JComboBox();
+	 jcb.addItem("Vanilla");
+	 jcb.addItem("Chocolate");
+	 jcb.addItem("Strawberry");
+	 add(jcb);
+ }
+}
+
+
+
+2  Rmi program:
+
+
+AddServerIntf.java
+
+
+import java.rmi.*;
+public interface AddServerIntf extends Remote {
+ int add(int x, int y) throws RemoteException;
+}
+AddServerImpl.java
+import java.rmi.*;
+import java.rmi.server.*;
+public class AddServerImpl extends UnicastRemoteObject implements
+AddServerIntf{
+ public AddServerImpl() throws RemoteException {}
+ public int add(int x, int y) throws RemoteException {
+ return x+y;
+ }
+}
+
+AddServer.java
+
+
+import java.rmi.*;
+public class AddServer {
+ public static void main(String[] args) {
+ try{
+ AddServerImpl server = new AddServerImpl();
+ Naming.rebind("registerme",server);
+ System.out.println("Server is running...");
+ } catch (Exception e) {
+ System.out.println(e);
+ }
+ }
+}
+
+
+AddClient.java
+
+
+import java.rmi.*;
+public class AddClient {
+ public static void main(String[] args) {
+ try{
+ AddServerIntf client =
+(AddServerIntf)Naming.lookup("registerme");
+ System.out.println("First number is :" + args[0]);
+ int x = Integer.parseInt(args[0]);
+ System.out.println("Second number is :" + args[1]);
+ int y = Integer.parseInt(args[1]);
+ System.out.println("Sum =" + client.add(x,y));
+ } catch (Exception e){
+ System.out.println(e);
+ }
+ }
+}
+
+
+3  Socket Programming:
+
+
+Client.java
+
+
+import java.net.*;
+import java.io.*;
+public class Client {
+ public static void main(String[] args) {
+ Socket client = null;
+ BufferedReader br = null;
+ try {
+ System.out.println(args[0] + " " + args[1]);
+ client = new Socket(args[0],Integer.parseInt(args[1]));
+ } catch (Exception e){}
+ DataInputStream input = null;
+ PrintStream output = null;
+ try {
+ input = new DataInputStream(client.getInputStream());
+ output = new PrintStream(client.getOutputStream());
+ br = new BufferedReader(new InputStreamReader(System.in));
+ String str = input.readLine(); //get the prompt from the server
+ System.out.println(str);
+ String filename = br.readLine();
+ if (filename!=null){
+ output.println(filename);
+ }
+ String data;
+ while ((data=input.readLine())!=null) {
+ System.out.println(data);
+ }
+ client.close();
+ } catch (Exception e){
+ System.out.println(e);
+ }
+ }
+}
+
+
+
+Server.java
+import java.net.*;
+import java.io.*;
+public class Server {
+ public static void main(String[] args) {
+ ServerSocket server = null;
+ try {
+ server = new ServerSocket(Integer.parseInt(args[0]));
+ } catch (Exception e) {
+ }
+ while (true) {
+ Socket client = null;
+ PrintStream output = null;
+ DataInputStream input = null;
+ try {
+ client = server.accept();
+ } catch (Exception e) {
+ System.out.println(e);
+ }
+ try {
+ output = new PrintStream(client.getOutputStream());
+ input = new DataInputStream(client.getInputStream());
+ } catch (Exception e) {
+ System.out.println(e);
+ }
+ //Send the command prompt to client
+ output.println("Enter the filename :>");
+ try {
+ //get the filename from client
+ String filename = input.readLine();
+ System.out.println("Client requested file :" + filename);
+ try {
+ File f = new File(filename);
+BufferedReader br = new BufferedReader(new
+FileReader(f));
+ String data;
+ while ((data = br.readLine()) != null) {
+ output.println(data);
+ }
+ } catch (FileNotFoundException e) {
+ output.println("File not found");
+ }
+ client.close();
+ } catch (Exception e) {
+ System.out.println(e);
+ }
+ }
+ }
+}
+
+
+
+Output
+Create a file called testfile.txt in the folder where Client.java and Server.java is located. Add some content.
+Open two terminals
+Navigate to the src folder of your project
+
+
+
+
+ 4. Producer Consumer:
+
+
+class Q {
+ int n;
+ boolean valueset = false;
+ synchronized int get() {
+ while (!valueset)
+ try {
+ wait();
+ } catch (InterruptedException e) {
+ System.out.println("Thread Interrupted");
+ }
+ System.out.println("Got :" + n);
+ valueset = false;
+ notify();
+ return n;
+ }
+ synchronized void put(int n) {
+ while (valueset)
+ try {
+ wait();
+ } catch (InterruptedException e) {
+ System.out.println("Thread interrupted");
+ }
+ this.n = n;
+ valueset = true;
+ System.out.println("put " + n);
+ notify();
+ }
+}
+class Producer implements Runnable {
+ Q q;
+ Producer(Q q) {
+ this.q = q;
+ new Thread(this, "Producer").start();
+ }
+ public void run() {
+ int i = 0;
+ while (true) {
+ q.put(i++);
+ }
+ }
+}
+class Consumer implements Runnable {
+ Q q;
+ Consumer(Q q) {
+ this.q = q;
+ new Thread(this, "Consumer").start();
+ }
+ 
+ public void run() {
+ int i = 0;
+ while (true) {
+ q.get();
+ }
+ }
+}
+class Demo {
+ public static void main(String args[]) {
+ Q q = new Q();
+ new Producer(q);
+ new Consumer(q);
+ System.out.println("press ctrl+c to exit");
+ }
+}
+
+
+
+5 Jdbc program
+
+
+
+import java.sql.*;
+class MysqlCon{
+public static void main(String args[]){ try{
+Class.forName("com.mysql.jdbc.Driver");
+Connection con=DriverManager.getConnection(
+"jdbc:mysql://localhost:3306/sonoo","root","root");
+//here sonoo is database name, root is username and password
+Statement stmt=con.createStatement();
+ResultSet rs=stmt.executeQuery("select * from emp");
+while(rs.next())
+System.out.println(rs.getInt(1)+" "+rs.getString(2)+" "+rs.getString(3));
+con.close();
+}catch(Exception e){ System.out.println(e);}
+}
+} 
+
+
+
+6.html  
+
+
+
+Servlet9.java
+
+import java.io.*;
+import javax.servlet.*;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+@WebServlet("/Servlet9")
+publicclass Servlet9 extends HttpServlet {
+protectedvoid doPost(HttpServletRequest request, HttpServletResponse response)
+throws ServletException, IOException {
+response.setContentType("text/html");
+PrintWriter out = response.getWriter();
+String str = request.getParameter("uname");
+String str1 = request.getParameter("pname");
+out.println("<html>");
+out.println("<body>");
+out.println("Username is :" + str + "<br/>");
+out.println("Password is :" + str1);
+out.println("</body>");
+out.println("</html>"); }
+}
+
+
+Under WebContent, create a new html file, Program9.html
+
+
+<html>
+<head>
+<title>Program 9</title>
+</head>
+<body bgcolor=orange>
+<form method="post" name="form1"
+action="http://localhost:8080/ProjectName/ServletClassName">
+<center>
+<b><br/><br/>
+ Enter Username : <input type="text" name="uname" size="10"/>
+<br/>
+ Enter Password : <input type="password" name="pname" size="10"/>
+<br/><br/>
+<input type="button" value="Submit" onclick="submit()"/>
+</center>
+<script type="text/javascript">
+function validate(){
+if(document.form1.uname.value =="" || document.from1.pname.value ==""){
+alert("Fields cannot be blank");
+return;
+ }
+ }
+</script>
+</form>
+</body>
+</html>
